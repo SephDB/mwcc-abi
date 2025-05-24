@@ -1,4 +1,4 @@
-site_name: My Docs
+site_name: MWCC C++ ABI
 theme: readthedocs
 extra_javascript:
   - viz-standalone.js
