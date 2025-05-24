@@ -1,0 +1,5 @@
+site_name: My Docs
+theme: readthedocs
+extra_javascript:
+  - viz-standalone.js
+  - do-graphs.js

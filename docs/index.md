@@ -1,0 +1,5 @@
+# MWCC C++ ABI
+
+This documentation aims to explain how MWCC for PowerPC(the main compiler used for the Nintendo GameCube and Wii) does object layout and RTTI for C++ classes. We'll be using the Itanium C++ ABI as a point of comparison to discuss where MWCC made interesting/different implementation decisions.
+
+This document has been heavily inspired by write-ups done on GCC/Itanium ABI in the past, most notably [Moyang Wang's VTable Notes](https://gist.github.com/moyang/1b7726c6d2df459ef73a717a56a0abfe)(and I'll be using plenty of examples lifted from this write-up as my own). Feel free to use this to get a refresher on Itanium's VTable layouts, as I'll mostly be highlighting the differences here. If you want the full details, there's always [the Itanium ABI spec](https://itanium-cxx-abi.github.io/cxx-abi/abi.html) for you to peruse.
