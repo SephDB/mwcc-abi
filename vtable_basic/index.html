@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>VTables and non-virtual inheritance - MWCC C++ ABI</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../project.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "VTables and non-virtual inheritance";
+        var mkdocs_page_input_path = "vtable_basic.md";
+        var mkdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> MWCC C++ ABI
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">MWCC C++ ABI</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../basic_inheritance/">Non-polymorphic inheritance</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="#">VTables and non-virtual inheritance</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#basic-example">Basic example</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">MWCC C++ ABI</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">VTables and non-virtual inheritance</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="vtables-and-non-virtual-inheritance">VTables and non-virtual inheritance</h1>
+<p>This is where MWCC's ABI start differentiating itself from Itanium. We'll look at the different cases of how vtables get created without virtual inheritance first. </p>
+<h2 id="basic-example">Basic example</h2>
+<p>Let's look at an example vtable without inheritance involved yet:</p>
+<pre><code class="language-cpp">struct A {
+    virtual void test() {};
+    int a;
+};
+</code></pre>
+<pre><code class="language-dot">
+digraph G {
+    rankdir=TB;
+    node [shape=none];
+
+    subgraph cluster_mwcc {
+        label=&quot;MWCC&quot;;
+        {rank=same;
+        A [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;2&quot;&gt;A&lt;/td&gt;&lt;td&gt;0x0&lt;/td&gt;&lt;td port=&quot;A_vtable&quot;&gt;A::vt&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;0x4&lt;/td&gt;&lt;td&gt;a&lt;/td&gt;&lt;/tr&gt;
+        &lt;/table&gt;&gt;];
+        A_vt [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;Vtable&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;3&quot;&gt;A::vt&lt;/td&gt;&lt;td port=&quot;A_RTTI&quot;&gt;A::RTTI&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;0(concrete offset)&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td port=&quot;A_test&quot;&gt;A::test&lt;/td&gt;&lt;/tr&gt;
+        &lt;/table&gt;&gt;];
+        }
+        A:A_vtable -&gt; A_vt:A_RTTI:w;
+    }
+
+    subgraph cluster_itanium {
+        label=&quot;Itanium&quot;;
+        {rank=same
+        A2 [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;2&quot;&gt;A&lt;/td&gt;&lt;td&gt;0x0&lt;/td&gt;&lt;td port=&quot;A_vtable&quot;&gt;A::vt&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;0x4&lt;/td&gt;&lt;td port=&quot;A_test&quot;&gt;a&lt;/td&gt;&lt;/tr&gt;
+        &lt;/table&gt;&gt;];
+
+        A_vt2 [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;Vtable&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;3&quot;&gt;A::vt&lt;/td&gt;&lt;td&gt;0(concrete offset)&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td port=&quot;A_RTTI&quot;&gt;A::RTTI&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td port=&quot;A_start&quot;&gt;A::test&lt;/td&gt;&lt;/tr&gt;
+        &lt;/table&gt;&gt;];
+        }
+        }
+        A2:A_vtable -&gt; A_vt2:A_start:w;
+    }
+}
+</code></pre>
+<p>As you can see, there's a few ordering differences: MWCC has objects' vtable pointers point to the start of the structure, whereas Itanium has them point to the start of the virtual function table within the vtable.</p>
+<p>The concrete offset is 0 in simple cases like this, but it'll be relevant in multiple inheritance cases where it gives the offset from the subobject a vtable is part of to the concrete type's position.</p>
+<p>In Itanium the vtable pointer is always at the start of an (sub)object, but MWCC has a different algorithm: it puts the vtable pointer in declaration order of the first declared virtual method:</p>
+<pre><code class="language-cpp">struct A {
+    int a;
+    virtual void test() {};
+};
+</code></pre>
+<pre><code class="language-dot">
+digraph G {
+    rankdir=TB;
+    node [shape=none];
+
+    subgraph cluster_mwcc {
+        label=&quot;MWCC&quot;;
+        {rank=same;
+        A [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;2&quot;&gt;A&lt;/td&gt;&lt;td&gt;0x0&lt;/td&gt;&lt;td&gt;a&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;0x4&lt;/td&gt;&lt;td port=&quot;A_vtable&quot;&gt;A::vt&lt;/td&gt;&lt;/tr&gt;
+        &lt;/table&gt;&gt;];
+        A_vt [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;Vtable&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;3&quot;&gt;A::vt&lt;/td&gt;&lt;td port=&quot;A_RTTI&quot;&gt;A::RTTI&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;0(concrete offset)&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td port=&quot;A_test&quot;&gt;A::test&lt;/td&gt;&lt;/tr&gt;
+        &lt;/table&gt;&gt;];
+        }
+        A:A_vtable -&gt; A_vt:A_RTTI:w;
+    }
+}
+</code></pre>
+<p>Note how the concrete offset in the vtable remains unchanged, since it is based on the offset from a pointer to the subobject, not the offset of the vtable itself.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../basic_inheritance/" class="btn btn-neutral float-left" title="Non-polymorphic inheritance"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../basic_inheritance/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../viz-standalone.js"></script>
+      <script src="../do-graphs.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,7 @@
+pre:has(svg) {
+    text-align: center;
+}
+
+pre>svg {
+    max-width: 100%;
+}
