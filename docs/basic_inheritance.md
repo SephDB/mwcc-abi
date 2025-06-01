@@ -2,7 +2,9 @@
 
 As a baseline, let's look at what happens when there's neither virtual functions nor virtual inheritance involved in the inheritance hierarchy.
 
-As you might expect, MWCC does the obvious thing and just plops each class in the inheritance tree down in a pre-order traversal, with each base being a subobject of the derived class in inheritance declaration order. There is no difference with Itanium here so I won't be comparing the two for this case. To show the basics of the diagrams I'll be using throughout, here's an example with a few levels of inheritance: 
+MWCC does the obvious thing and just plops each class in the inheritance tree down in a declaration order. This layouting algorithm will not change no matter the type of inheritance involved.
+
+Without virtual functions or inheritance involved, there is no difference with Itanium here so I won't be comparing the two for this case. To show the basics of the diagrams I'll be using throughout, here's an example with a few levels of inheritance: 
 
 ```cpp
 struct A {
