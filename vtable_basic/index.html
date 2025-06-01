@@ -53,6 +53,8 @@
     <ul class="current">
     <li class="toctree-l2"><a class="reference internal" href="#basic-example">Basic example</a>
     </li>
+    <li class="toctree-l2"><a class="reference internal" href="#single-inheritance">Single Inheritance</a>
+    </li>
     </ul>
                 </li>
               </ul>
@@ -84,7 +86,7 @@
 <h2 id="basic-example">Basic example</h2>
 <p>Let's look at an example vtable without inheritance involved yet:</p>
 <pre><code class="language-cpp">struct A {
-    virtual void test() {};
+    virtual void test();
     int a;
 };
 </code></pre>
@@ -97,12 +99,12 @@ digraph G {
         label=&quot;MWCC&quot;;
         {rank=same;
         A [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
-            &lt;tr&gt;&lt;td rowspan=&quot;2&quot;&gt;A&lt;/td&gt;&lt;td&gt;0x0&lt;/td&gt;&lt;td port=&quot;A_vtable&quot;&gt;A::vt&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;2&quot;&gt;A&lt;/td&gt;&lt;td&gt;0x0&lt;/td&gt;&lt;td port=&quot;A_vtable&quot;&gt;__vtable&lt;/td&gt;&lt;/tr&gt;
             &lt;tr&gt;&lt;td&gt;0x4&lt;/td&gt;&lt;td&gt;a&lt;/td&gt;&lt;/tr&gt;
         &lt;/table&gt;&gt;];
         A_vt [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
-            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;Vtable&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
-            &lt;tr&gt;&lt;td rowspan=&quot;3&quot;&gt;A::vt&lt;/td&gt;&lt;td port=&quot;A_RTTI&quot;&gt;A::RTTI&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;Vtable for A&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;3&quot;&gt;A_vtable&lt;/td&gt;&lt;td port=&quot;A_RTTI&quot;&gt;A::__RTTI&lt;/td&gt;&lt;/tr&gt;
             &lt;tr&gt;&lt;td&gt;0(concrete offset)&lt;/td&gt;&lt;/tr&gt;
             &lt;tr&gt;&lt;td port=&quot;A_test&quot;&gt;A::test&lt;/td&gt;&lt;/tr&gt;
         &lt;/table&gt;&gt;];
@@ -114,14 +116,14 @@ digraph G {
         label=&quot;Itanium&quot;;
         {rank=same
         A2 [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
-            &lt;tr&gt;&lt;td rowspan=&quot;2&quot;&gt;A&lt;/td&gt;&lt;td&gt;0x0&lt;/td&gt;&lt;td port=&quot;A_vtable&quot;&gt;A::vt&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;2&quot;&gt;A&lt;/td&gt;&lt;td&gt;0x0&lt;/td&gt;&lt;td port=&quot;A_vtable&quot;&gt;__vtable&lt;/td&gt;&lt;/tr&gt;
             &lt;tr&gt;&lt;td&gt;0x4&lt;/td&gt;&lt;td port=&quot;A_test&quot;&gt;a&lt;/td&gt;&lt;/tr&gt;
         &lt;/table&gt;&gt;];
 
         A_vt2 [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
-            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;Vtable&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
-            &lt;tr&gt;&lt;td rowspan=&quot;3&quot;&gt;A::vt&lt;/td&gt;&lt;td&gt;0(concrete offset)&lt;/td&gt;&lt;/tr&gt;
-            &lt;tr&gt;&lt;td port=&quot;A_RTTI&quot;&gt;A::RTTI&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;Vtable for A&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;3&quot;&gt;A_vtable&lt;/td&gt;&lt;td&gt;0(concrete offset)&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td port=&quot;A_RTTI&quot;&gt;A::__RTTI&lt;/td&gt;&lt;/tr&gt;
             &lt;tr&gt;&lt;td port=&quot;A_start&quot;&gt;A::test&lt;/td&gt;&lt;/tr&gt;
         &lt;/table&gt;&gt;];
         }
@@ -135,7 +137,7 @@ digraph G {
 <p>In Itanium the vtable pointer is always at the start of an (sub)object, but MWCC has a different algorithm: it puts the vtable pointer in declaration order of the first declared virtual method:</p>
 <pre><code class="language-cpp">struct A {
     int a;
-    virtual void test() {};
+    virtual void test();
 };
 </code></pre>
 <pre><code class="language-dot">
@@ -148,11 +150,11 @@ digraph G {
         {rank=same;
         A [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
             &lt;tr&gt;&lt;td rowspan=&quot;2&quot;&gt;A&lt;/td&gt;&lt;td&gt;0x0&lt;/td&gt;&lt;td&gt;a&lt;/td&gt;&lt;/tr&gt;
-            &lt;tr&gt;&lt;td&gt;0x4&lt;/td&gt;&lt;td port=&quot;A_vtable&quot;&gt;A::vt&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;0x4&lt;/td&gt;&lt;td port=&quot;A_vtable&quot;&gt;__vtable&lt;/td&gt;&lt;/tr&gt;
         &lt;/table&gt;&gt;];
         A_vt [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
-            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;Vtable&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
-            &lt;tr&gt;&lt;td rowspan=&quot;3&quot;&gt;A::vt&lt;/td&gt;&lt;td port=&quot;A_RTTI&quot;&gt;A::RTTI&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;Vtable for A&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;3&quot;&gt;A_vtable&lt;/td&gt;&lt;td port=&quot;A_RTTI&quot;&gt;A::__RTTI&lt;/td&gt;&lt;/tr&gt;
             &lt;tr&gt;&lt;td&gt;0(concrete offset)&lt;/td&gt;&lt;/tr&gt;
             &lt;tr&gt;&lt;td port=&quot;A_test&quot;&gt;A::test&lt;/td&gt;&lt;/tr&gt;
         &lt;/table&gt;&gt;];
@@ -162,6 +164,45 @@ digraph G {
 }
 </code></pre>
 <p>Note how the concrete offset in the vtable remains unchanged, since it is based on the offset from a pointer to the subobject, not the offset of the vtable itself.</p>
+<h2 id="single-inheritance">Single Inheritance</h2>
+<pre><code class="language-cpp">struct A {
+    virtual void test();
+    int a;
+};
+
+struct B : A {
+    void test(); //override
+    virtual void new_func();
+    int b;
+};
+</code></pre>
+<pre><code class="language-dot">
+digraph G {
+    rankdir=TB;
+    node [shape=none];
+
+    subgraph cluster_mwcc {
+        label=&quot;MWCC&quot;;
+        {rank=same;
+        B [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;5&quot;&gt;B&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;A&lt;/td&gt;&lt;td&gt;0x0&lt;/td&gt;&lt;td port=&quot;B_vtable&quot;&gt;__vtable&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;0x4&lt;/td&gt;&lt;td&gt;a&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;0x8&lt;/td&gt;&lt;td&gt;b&lt;/td&gt;&lt;/tr&gt;
+        &lt;/table&gt;&gt;];
+        B_vt [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;Vtable for B&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;3&quot;&gt;A_vtable&lt;/td&gt;&lt;td port=&quot;B_RTTI&quot;&gt;B::__RTTI&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;0(concrete offset)&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td port=&quot;A_test&quot;&gt;B::test&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;B::new_func&lt;/td&gt;&lt;/tr&gt;
+        &lt;/table&gt;&gt;];
+        }
+        B:B_vtable -&gt; B_vt:B_RTTI:w;
+    }
+}
+</code></pre>
+<p>The vtable pointer of A gets repointed to a version that replaces the pointers to RTTI and test to B's version, and adds B's new_func at the end.</p>
+<p>Outside of where the vtable pointer ends up pointing inside the vtable structure, no new difference with Itanium here.</p>
               
             </div>
           </div><footer>
