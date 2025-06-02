@@ -55,6 +55,8 @@
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#single-inheritance">Single Inheritance</a>
     </li>
+    <li class="toctree-l2"><a class="reference internal" href="#multiple-inheritance">Multiple inheritance</a>
+    </li>
     </ul>
                 </li>
               </ul>
@@ -90,8 +92,7 @@
     int a;
 };
 </code></pre>
-<pre><code class="language-dot">
-digraph G {
+<pre><code class="language-dot">digraph G {
     rankdir=TB;
     node [shape=none];
 
@@ -126,7 +127,6 @@ digraph G {
             &lt;tr&gt;&lt;td port=&quot;A_RTTI&quot;&gt;A::__RTTI&lt;/td&gt;&lt;/tr&gt;
             &lt;tr&gt;&lt;td port=&quot;A_start&quot;&gt;A::test&lt;/td&gt;&lt;/tr&gt;
         &lt;/table&gt;&gt;];
-        }
         }
         A2:A_vtable -&gt; A_vt2:A_start:w;
     }
@@ -191,10 +191,10 @@ digraph G {
         &lt;/table&gt;&gt;];
         B_vt [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
             &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;Vtable for B&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
-            &lt;tr&gt;&lt;td rowspan=&quot;3&quot;&gt;A_vtable&lt;/td&gt;&lt;td port=&quot;B_RTTI&quot;&gt;B::__RTTI&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;4&quot;&gt;A_vtable&lt;/td&gt;&lt;td port=&quot;B_RTTI&quot;&gt;B::__RTTI&lt;/td&gt;&lt;/tr&gt;
             &lt;tr&gt;&lt;td&gt;0(concrete offset)&lt;/td&gt;&lt;/tr&gt;
             &lt;tr&gt;&lt;td port=&quot;A_test&quot;&gt;B::test&lt;/td&gt;&lt;/tr&gt;
-            &lt;tr&gt;&lt;td&gt;&lt;/td&gt;&lt;td&gt;B::new_func&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;B::new_func&lt;/td&gt;&lt;/tr&gt;
         &lt;/table&gt;&gt;];
         }
         B:B_vtable -&gt; B_vt:B_RTTI:w;
@@ -203,6 +203,158 @@ digraph G {
 </code></pre>
 <p>The vtable pointer of A gets repointed to a version that replaces the pointers to RTTI and test to B's version, and adds B's new_func at the end.</p>
 <p>Outside of where the vtable pointer ends up pointing inside the vtable structure, no new difference with Itanium here.</p>
+<h2 id="multiple-inheritance">Multiple inheritance</h2>
+<p>Taking an example from <a href="https://gist.github.com/moyang/1b7726c6d2df459ef73a717a56a0abfe">Moyang Wang's VTable Notes</a>, let's jump in the deep end with the dreaded non-virtual diamond inheritance pattern:</p>
+<pre><code class="language-cpp">struct A {
+    virtual void v();
+    int a;
+};
+
+struct B : A {
+    virtual void w();
+    int b;
+};
+
+struct C : A {
+    virtual void x();
+    int c;
+};
+
+struct D : B, C {
+    virtual void y();
+    int d;
+};
+</code></pre>
+<pre><code class="language-dot">digraph G {
+    rankdir=TB;
+    node [shape=none];
+
+    subgraph cluster_mwcc {
+        label=&quot;MWCC&quot;;
+        {rank=same;
+        D [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;7&quot;&gt;D&lt;/td&gt;&lt;td rowspan=&quot;3&quot;&gt;B&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;A&lt;/td&gt;&lt;td&gt;0x0&lt;/td&gt;&lt;td port=&quot;D_vt1&quot;&gt;__vtable&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;0x4&lt;/td&gt;&lt;td&gt;B::A::a&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;0x8&lt;/td&gt;&lt;td&gt;B::b&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;3&quot;&gt;C&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;A&lt;/td&gt;&lt;td&gt;0xc&lt;/td&gt;&lt;td port=&quot;D_vt2&quot;&gt;__vtable&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;0x10&lt;/td&gt;&lt;td&gt;C::A::a&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;0x14&lt;/td&gt;&lt;td&gt;C::c&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;3&quot;&gt;0x18&lt;/td&gt;&lt;td&gt;d&lt;/td&gt;&lt;/tr&gt;
+        &lt;/table&gt;&gt;];
+        D_vt [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;Vtable for D&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;4&quot;&gt;B_vtable&lt;/td&gt;&lt;td port=&quot;D_RTTI1&quot;&gt;D::__RTTI&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;0(concrete offset)&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;A::v&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;B::w&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;5&quot;&gt;C_vtable&lt;/td&gt;&lt;td port=&quot;D_RTTI2&quot;&gt;D::__RTTI&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;-0xc(concrete offset)&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;A::v&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;C::x&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;D::y&lt;/td&gt;&lt;/tr&gt;
+        &lt;/table&gt;&gt;];
+        }
+        D:D_vt1 -&gt; D_vt:D_RTTI1:w
+        D:D_vt2 -&gt; D_vt:D_RTTI2:w
+    }
+
+    subgraph cluster_itanium {
+        label=&quot;Itanium&quot;;
+        {rank=same
+        D2 [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;7&quot;&gt;D&lt;/td&gt;&lt;td rowspan=&quot;3&quot;&gt;B&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;A&lt;/td&gt;&lt;td&gt;0x0&lt;/td&gt;&lt;td port=&quot;D_vt1&quot;&gt;__vtable&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;0x4&lt;/td&gt;&lt;td&gt;B::A::a&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;0x8&lt;/td&gt;&lt;td&gt;B::b&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;3&quot;&gt;C&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;A&lt;/td&gt;&lt;td&gt;0xc&lt;/td&gt;&lt;td port=&quot;D_vt2&quot;&gt;__vtable&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;0x10&lt;/td&gt;&lt;td&gt;C::A::a&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;0x14&lt;/td&gt;&lt;td&gt;C::c&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;3&quot;&gt;0x18&lt;/td&gt;&lt;td&gt;d&lt;/td&gt;&lt;/tr&gt;
+        &lt;/table&gt;&gt;];
+        D2_vt [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;Vtable for D&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;5&quot;&gt;B_vtable&lt;/td&gt;&lt;td&gt;0(concrete offset)&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;D::__RTTI&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td port=&quot;D_RTTI1&quot;&gt;A::v&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;B::w&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;D::y&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;4&quot;&gt;C_vtable&lt;/td&gt;&lt;td&gt;-0xc(concrete offset)&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;D::__RTTI&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td port=&quot;D_RTTI2&quot;&gt;A::v&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;C::x&lt;/td&gt;&lt;/tr&gt;
+        &lt;/table&gt;&gt;];
+        }
+        D2:D_vt1 -&gt; D2_vt:D_RTTI1:w
+        D2:D_vt2 -&gt; D2_vt:D_RTTI2:w
+    }
+}
+</code></pre>
+<p>The object layouts are identical, but MWCC adds D's new virtual function to the last vtable instead of the first like Itanium does. Itanium has the concept of a <code>primary base class</code>, which is the base class that sits at offset 0 in the object layout of a dynamic class(a class that requires a vtable) and shares its primary vtable pointer. Itanium will re-order the list of bases of a dynamic class to make sure the primary base class exists if possible. MWCC, however, will not:</p>
+<pre><code class="language-cpp">struct A {
+    virtual void v();
+    int a;
+};
+
+struct B {
+    int b;
+}; //No vtable
+
+struct C : B,A {
+    virtual void w();
+    int c;
+};
+</code></pre>
+<pre><code class="language-dot">
+digraph G {
+    rankdir=TB;
+    node [shape=none];
+
+    subgraph cluster_mwcc {
+        label=&quot;MWCC&quot;;
+        {rank=same;
+        C [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;5&quot;&gt;C&lt;/td&gt;&lt;td&gt;B&lt;/td&gt;&lt;td&gt;0x0&lt;/td&gt;&lt;td&gt;b&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;2&quot;&gt;A&lt;/td&gt;&lt;td&gt;0x4&lt;/td&gt;&lt;td port=&quot;A_vt&quot;&gt;__vtable&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;0x8&lt;/td&gt;&lt;td&gt;a&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;0xc&lt;/td&gt;&lt;td port=&quot;C_vt&quot;&gt;__vtable&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;0x10&lt;/td&gt;&lt;td&gt;c&lt;/td&gt;&lt;/tr&gt;
+        &lt;/table&gt;&gt;];
+        C_vt [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;Vtable for C&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;2&quot;&gt;C_vtable&lt;/td&gt;&lt;td port=&quot;C_vt&quot;&gt;C::__RTTI&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;0(concrete offset)&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;4&quot;&gt;A_vtable&lt;/td&gt;&lt;td port=&quot;A_vt&quot;&gt;C::__RTTI&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;-0x4(concrete offset)&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;A::v&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;C::w&lt;/td&gt;&lt;/tr&gt;
+        &lt;/table&gt;&gt;];
+        }
+        C:A_vt -&gt; C_vt:A_vt:w;
+        C:C_vt:e -&gt; C_vt:C_vt:w;
+    }
+
+    subgraph cluster_itanium {
+        label=&quot;Itanium&quot;;
+        {rank=same
+        C2 [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;4&quot;&gt;C&lt;/td&gt;&lt;td rowspan=&quot;2&quot;&gt;A&lt;/td&gt;&lt;td&gt;0x0&lt;/td&gt;&lt;td port=&quot;A_vt&quot;&gt;__vtable&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;0x4&lt;/td&gt;&lt;td&gt;a&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;B&lt;/td&gt;&lt;td&gt;0x8&lt;/td&gt;&lt;td&gt;b&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;0xc&lt;/td&gt;&lt;td&gt;c&lt;/td&gt;&lt;/tr&gt;
+        &lt;/table&gt;&gt;];
+        C2_vt [label=&lt;&lt;table cellspacing=&quot;0&quot;&gt;
+            &lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;Vtable for C&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan=&quot;2&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td rowspan=&quot;4&quot;&gt;A_vtable&lt;/td&gt;&lt;td&gt;C::__RTTI&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;0(concrete offset)&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td port=&quot;A_vt&quot;&gt;A::v&lt;/td&gt;&lt;/tr&gt;
+            &lt;tr&gt;&lt;td&gt;C::w&lt;/td&gt;&lt;/tr&gt;
+        &lt;/table&gt;&gt;];
+        }
+        C2:A_vt -&gt; C2_vt:A_vt:w;
+    }
+}
+</code></pre>
+<p>B is not a dynamic base class, but A is. In Itanium, this makes A the primary base class, and it gets shifted to the front of the direct base class order, enabling the use of A's vtable pointer as C's. MWCC keeps B as the first base, necessitating the introduction of another (empty) vtable to have a primary vtable that has offset 0. This is necessary for dynamic_cast to work correctly, since that looks at the primary vtable to know how much to adjust the pointer by to get to the concrete object.</p>
+<p>Note that MWCC still appends C's virtual function <code>w</code> to A's vtable.</p>
               
             </div>
           </div><footer>
