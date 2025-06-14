@@ -5,3 +5,8 @@ extra_javascript:
   - do-graphs.js
 extra_css:
   - project.css
+nav:
+  - index.md
+  - basic_inheritance.md
+  - vtable_basic.md
+  - virtual_inheritance.md
