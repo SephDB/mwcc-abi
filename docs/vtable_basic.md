@@ -306,3 +306,86 @@ B is not a dynamic base class, but A is. In Itanium, this makes A the primary ba
 
 Note that MWCC still appends C's virtual function `w` to A's vtable.
 
+## Overriding in multiple inheritance
+
+When overriding virtual functions of base objects not located at 0x0, care needs to be taken to make sure the `this` pointer is correct.
+
+```cpp
+struct B {
+    virtual void bf();
+    int b;
+};
+
+struct C {
+    virtual void cf();
+    int c;
+};
+
+struct D : B, C {
+    virtual void bf() {}; //override
+    virtual void cf() {}; //override
+    virtual void df() {};
+    int d;
+};
+```
+
+```dot
+digraph G {
+    rankdir=TB;
+    node [shape=none];
+    
+    subgraph cluster_mwcc {
+        label="MWCC";
+        {rank=same;
+        D [label=<<table cellspacing="0">
+            <tr><td rowspan="7">D</td><td rowspan="2">B</td><td>0x0</td><td port="D_vt1">__vtable</td></tr>
+            <tr><td>0x4</td><td>B::b</td></tr>
+            <tr><td rowspan="2">C</td><td>0x8</td><td port="D_vt2">__vtable</td></tr>
+            <tr><td>0xc</td><td>C::c</td></tr>
+            <tr><td colspan="2">0x10</td><td>d</td></tr>
+        </table>>];
+        D_vt [label=<<table cellspacing="0">
+            <tr><td colspan="2">Vtable for D</td></tr><tr><td colspan="2"></td></tr>
+            <tr><td rowspan="3">B_vt</td><td port="D_RTTI1">D::__RTTI</td></tr>
+            <tr><td>0(concrete offset)</td></tr>
+            <tr><td>D::bf</td></tr>
+            <tr><td rowspan="3">C_vt</td><td port="D_RTTI2">D::__RTTI</td></tr>
+            <tr><td>-0x8(concrete offset)</td></tr>
+            <tr><td>thunk to D::cf@8</td></tr>
+            <tr><td rowspan="2"></td><td>D::cf</td></tr>
+            <tr><td>D::df</td></tr>
+        </table>>];
+        }
+        D:D_vt1 -> D_vt:D_RTTI1:w
+        D:D_vt2 -> D_vt:D_RTTI2:w
+    }
+
+    subgraph cluster_itanium {
+        label="Itanium";
+        {rank=same
+        D2 [label=<<table cellspacing="0">
+            <tr><td rowspan="7">D</td><td rowspan="2">B</td><td>0x0</td><td port="D_vt1">__vtable</td></tr>
+            <tr><td>0x4</td><td>B::b</td></tr>
+            <tr><td rowspan="2">C</td><td>0x8</td><td port="D_vt2">__vtable</td></tr>
+            <tr><td>0xc</td><td>C::c</td></tr>
+            <tr><td colspan="2">0x10</td><td>d</td></tr>
+        </table>>];
+        D2_vt [label=<<table cellspacing="0">
+            <tr><td colspan="2">Vtable for D</td></tr><tr><td colspan="2"></td></tr>
+            <tr><td rowspan="3">B_vt</td><td>0(concrete offset)</td></tr>
+            <tr><td>D::__RTTI</td></tr>
+            <tr><td port="D_RTTI1">D::bf</td></tr>
+            <tr><td rowspan="2"></td><td>D::cf</td></tr>
+            <tr><td>D::df</td></tr>
+            <tr><td rowspan="3">C_vt</td><td>-0x8(concrete offset)</td></tr>
+            <tr><td>D::__RTTI</td></tr>
+            <tr><td port="D_RTTI2">thunk to D::cf@8</td></tr>
+        </table>>];
+        }
+        D2:D_vt1 -> D2_vt:D_RTTI1:w
+        D2:D_vt2 -> D2_vt:D_RTTI2:w
+    }
+}
+```
+
+Both MWCC and Itanium accomplish this by inserting a so-called thunk into the base's vtable. B doesn't need any adjustment, but C does and gets a non-virtual thunk to D::cf, which subtracts 8 from the this pointer, then calls D::cf directly.
