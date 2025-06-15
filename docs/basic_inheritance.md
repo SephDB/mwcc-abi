@@ -2,9 +2,9 @@
 
 As a baseline, let's look at what happens when there's neither virtual functions nor virtual inheritance involved in the inheritance hierarchy.
 
-MWCC does the obvious thing and just plops each class in the inheritance tree down in a declaration order. This layouting algorithm will not change no matter the type of inheritance involved.
+MWCC does the obvious thing and just plops each class in the inheritance tree down in a declaration order. This layout algorithm will not change no matter the type of inheritance involved.
 
-Without virtual functions or inheritance involved, there is no difference with Itanium here so I won't be comparing the two for this case. To show the basics of the diagrams I'll be using throughout, here's an example with a few levels of inheritance: 
+Without virtual functions or inheritance involved, there is no difference with Itanium here so I won't be comparing the two for this case. To show the basics of the diagrams I'll be using throughout, here's an example with a few levels of inheritance:
 
 ```cpp
 struct A {
@@ -23,6 +23,7 @@ struct D : B,C {
     int d;
 };
 ```
+
 ```dot
 digraph G {
     rankdir=LR;
@@ -38,4 +39,3 @@ digraph G {
     </table>>];
 }
 ```
-
