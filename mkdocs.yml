@@ -10,3 +10,5 @@ nav:
   - basic_inheritance.md
   - vtable_basic.md
   - virtual_inheritance.md
+not_in_nav: |
+  RTTI1.md
