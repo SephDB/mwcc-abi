@@ -10,14 +10,14 @@ So first up: let's review `dynamic_cast`! (feel free to skip this next section i
 
 The standard wording describing which casts are allowed and which are considered ambiguous is [a bit dense](https://eel.is/c++draft/expr.dynamic.cast), but describes an in essence simple algorithm for determining when a specific `dynamic_cast` is valid.
 
-For `dynamic_cast<Target*>(src)`, with `src` being a pointer of type `SrcType*` pointing to a base subobject of an object of the Most-Derived Type(`MDType`), the base of the hierarchy:
+For `dynamic_cast<Target*>(src)`, with `src` being a pointer of type `SrcType*` pointing to a base subobject of an object of the Most-Derived Type(`MDType`), the base of the hierarchy, it tries to find a subobject of type Target to cast in two traversals through the inheritance hierarchy of MDType: one from SrcType down to MDType following inheritance links in reverse, and if that fails to find a Target subobject and SrcType is a public base of MDType, a second walk up from MDType through the rest of the hierarchy.
 
-1. Starting at `src`, follow all inheritance relationship paths backwards until all paths have reached `MDType`, keeping track of which subobjects can be reached through exclusively public inheritance paths.
-1. If you encounter exactly one subobject of type `Target`, and it has a public inheritance path to `src`, you're done and can return it as the result.
-1. If you encountered multiple, or encountered a single one but the paths to it involved a private inheritance edge, the cast is invalid.
-1. If `MDType` is reached but not through a public path, the algorithm stops here.
-1. Do steps 1-3 again, but this time following inheritance relationships *forward* starting from `MDType`.
-1. If `Target` isn't found, the cast is also invalid.
+In both traversals, if a Target subobject is found, the following two conditions need to be met for the cast to succeed, and it'll fail (early in the case of the downcast check) if either of them is not:
+
+1. Exactly one Target subobject needs to be found during the walk, otherwise there's no obvious answer as to which is the intended cast target.
+1. The Target subobject needs to be reachable from the start of the walk through a chain of public inheritance links. dynamic_cast is not allowed to cross private inheritance boundaries.
+
+Note that these requirements are orthogonal: if a second Target subobject is found through a private path, it still counts as a duplicate.
 
 To illustrate the rules, here's an inheritance diagram that has most cases covered, with subobjects marked using their concrete offset to easily tell ambiguous bases apart:
 
@@ -46,11 +46,11 @@ Interesting downcasts to look at:
 As for the crosscasts:
 
 - None of `B@0x0`, `C@0x0` or `D@0x0` get to participate in any crosscasts(to or from) because of the private inheritance edge on the single path to `A@0x0`.
-- nothing can be crosscast to either `C` or `D` since they're ambiguous bases of `A`.(private vs public inheritance is not a factor in determining ambiguity)
+- nothing can be crosscast to either `C` or `D` since they're ambiguous bases of `A`.
 - `G@0x10` **can** be crosscast to `F`(`F@0x8`) and `E`(`E@0x14`) because of the public inheritance from `A@0x0` to both.
 - `E@0x14`, `F@0x8`, `C@0x8` and `D@0x8` **can** be crosscast to `G`(`G@0x10`) for the same reason.
 
-This algorithm is quite slow(and expensive data-wise) to implement as written, and different compilers have found different ways of making it more feasible.
+This algorithm is quite slow(and expensive data-wise) to implement as written, and different compilers have found different ways of speeding it up.
 
 ## Itanium
 
