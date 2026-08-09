@@ -10,12 +10,12 @@ So first up: let's review `dynamic_cast`! (feel free to skip this next section i
 
 The standard wording describing which casts are allowed and which are considered ambiguous is [a bit dense](https://eel.is/c++draft/expr.dynamic.cast), but describes an in essence simple algorithm for determining when a specific `dynamic_cast` is valid.
 
-For `dynamic_cast<Target*>(src)`, with `src` being a pointer of type `SrcType*` pointing to a base subobject of an object of the Most-Derived Type(`MDType`), the base of the hierarchy, it tries to find a subobject of type Target to cast in two traversals through the inheritance hierarchy of MDType: one from SrcType down to MDType following inheritance links in reverse, and if that fails to find a Target subobject and SrcType is a public base of MDType, a second walk up from MDType through the rest of the hierarchy.
+For `dynamic_cast<Target*>(src)`, with `src` being a pointer of type `SrcType*` pointing to a base subobject of an object of the Most-Derived Type(`MDType`), the base of the hierarchy, it tries to find a subobject of type Target to cast in two traversals through the inheritance hierarchy of MDType: first from SrcType down to MDType following inheritance links in reverse, and the second from MDType back up the hierarchy if the first one didn't find any Target subobject and `src` is a public base subobject of MDType(if `src` points to a private subobject the search is cut short after the first traversal).
 
 In both traversals, if a Target subobject is found, the following two conditions need to be met for the cast to succeed, and it'll fail (early in the case of the downcast check) if either of them is not:
 
 1. Exactly one Target subobject needs to be found during the walk, otherwise there's no obvious answer as to which is the intended cast target.
-1. The Target subobject needs to be reachable from the start of the walk through a chain of public inheritance links. dynamic_cast is not allowed to cross private inheritance boundaries.
+1. The Target subobject needs to be reachable from the start of the walk through a chain of public inheritance links. `dynamic_cast` is not allowed to cross private inheritance boundaries.
 
 Note that these requirements are orthogonal: if a second Target subobject is found through a private path, it still counts as a duplicate.
 
