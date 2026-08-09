@@ -13,9 +13,9 @@
     
       <script>
         // Current page data
-        var mkdocs_page_name = "RTTI and dynamic_cast";
-        var mkdocs_page_input_path = "RTTI1.md";
-        var mkdocs_page_url = null;
+        var properdocs_page_name = "RTTI and dynamic_cast";
+        var properdocs_page_input_path = "RTTI1.md";
+        var properdocs_page_url = null;
       </script>
     
     <!--[if lt IE 9]>
@@ -85,15 +85,13 @@
 <h2 id="dynamic-cast-overview">Dynamic cast overview</h2>
 <p><code>dynamic_cast</code> is the mechanism the standard provides to take a pointer or reference to a base class and cast it to the corresponding instance of a derived class(direct downcast) or a sibling base class(crosscast), as long as said cast is unambiguous and occurs through only public inheritance paths. Casts from derived to base and other such cases are resolved at compile-time(essentially turned into <code>static_cast</code>). Runtime checks using RTTI are only required for down- and crosscasts, so those are what we concern ourselves with.</p>
 <p>The standard wording describing which casts are allowed and which are considered ambiguous is <a href="https://eel.is/c++draft/expr.dynamic.cast">a bit dense</a>, but describes an in essence simple algorithm for determining when a specific <code>dynamic_cast</code> is valid.</p>
-<p>For <code>dynamic_cast&lt;Target*&gt;(src)</code>, with <code>src</code> being a pointer of type <code>SrcType*</code> pointing to a base subobject of an object of the Most-Derived Type(<code>MDType</code>), the base of the hierarchy:</p>
+<p>For <code>dynamic_cast&lt;Target*&gt;(src)</code>, with <code>src</code> being a pointer of type <code>SrcType*</code> pointing to a base subobject of an object of the Most-Derived Type(<code>MDType</code>), the base of the hierarchy, it tries to find a subobject of type Target to cast in two traversals through the inheritance hierarchy of MDType: one from SrcType down to MDType following inheritance links in reverse, and if that fails to find a Target subobject and SrcType is a public base of MDType, a second walk up from MDType through the rest of the hierarchy.</p>
+<p>In both traversals, if a Target subobject is found, the following two conditions need to be met for the cast to succeed, and it'll fail (early in the case of the downcast check) if either of them is not:</p>
 <ol>
-<li>Starting at <code>src</code>, follow all inheritance relationship paths backwards until all paths have reached <code>MDType</code>, keeping track of which subobjects can be reached through exclusively public inheritance paths.</li>
-<li>If you encounter exactly one subobject of type <code>Target</code>, and it has a public inheritance path to <code>src</code>, you're done and can return it as the result.</li>
-<li>If you encountered multiple, or encountered a single one but the paths to it involved a private inheritance edge, the cast is invalid.</li>
-<li>If <code>MDType</code> is reached but not through a public path, the algorithm stops here.</li>
-<li>Do steps 1-3 again, but this time following inheritance relationships <em>forward</em> starting from <code>MDType</code>.</li>
-<li>If <code>Target</code> isn't found, the cast is also invalid.</li>
+<li>Exactly one Target subobject needs to be found during the walk, otherwise there's no obvious answer as to which is the intended cast target.</li>
+<li>The Target subobject needs to be reachable from the start of the walk through a chain of public inheritance links. dynamic_cast is not allowed to cross private inheritance boundaries.</li>
 </ol>
+<p>Note that these requirements are orthogonal: if a second Target subobject is found through a private path, it still counts as a duplicate.</p>
 <p>To illustrate the rules, here's an inheritance diagram that has most cases covered, with subobjects marked using their concrete offset to easily tell ambiguous bases apart:</p>
 <pre><code class="language-dot">digraph G {
     rankdir=BT;
@@ -118,11 +116,11 @@
 <p>As for the crosscasts:</p>
 <ul>
 <li>None of <code>B@0x0</code>, <code>C@0x0</code> or <code>D@0x0</code> get to participate in any crosscasts(to or from) because of the private inheritance edge on the single path to <code>A@0x0</code>.</li>
-<li>nothing can be crosscast to either <code>C</code> or <code>D</code> since they're ambiguous bases of <code>A</code>.(private vs public inheritance is not a factor in determining ambiguity)</li>
+<li>nothing can be crosscast to either <code>C</code> or <code>D</code> since they're ambiguous bases of <code>A</code>.</li>
 <li><code>G@0x10</code> <strong>can</strong> be crosscast to <code>F</code>(<code>F@0x8</code>) and <code>E</code>(<code>E@0x14</code>) because of the public inheritance from <code>A@0x0</code> to both.</li>
 <li><code>E@0x14</code>, <code>F@0x8</code>, <code>C@0x8</code> and <code>D@0x8</code> <strong>can</strong> be crosscast to <code>G</code>(<code>G@0x10</code>) for the same reason.</li>
 </ul>
-<p>This algorithm is quite slow(and expensive data-wise) to implement as written, and different compilers have found different ways of making it more feasible.</p>
+<p>This algorithm is quite slow(and expensive data-wise) to implement as written, and different compilers have found different ways of speeding it up.</p>
 <h2 id="itanium">Itanium</h2>
 <p>This section is an overview based on the <a href="https://itanium-cxx-abi.github.io/cxx-abi/abi.html#rtti-layout">Itanium docs</a> and <a href="https://gcc.gnu.org/git/?p=gcc.git;a=blob;f=libstdc%2B%2B-v3/libsupc%2B%2B/dyncast.cc;h=cdfe677c1922537d0ff6ae0c86a4011674a995b9;hb=6a2eb23e0e2d0aa65a38869aee56406aa48c7fae">gcc's implementation of <code>dynamic_cast</code></a>. For more detailed information, check those sources.</p>
 <h3 id="rtti">RTTI</h3>
@@ -150,7 +148,7 @@
     <!-- Copyright etc -->
   </div>
 
-  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+  Built with <a href="https://properdocs.org/">ProperDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 </footer>
           
         </div>
