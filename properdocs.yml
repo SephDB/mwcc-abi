@@ -12,5 +12,5 @@ nav:
     - vtable_basic.md
     - virtual_inheritance.md
   - RTTI:
-    - Introduction: RTTI1.md
+    - Introduction: RTTI.md
     - RTTI_mwcc.md
