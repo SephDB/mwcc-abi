@@ -7,8 +7,10 @@ extra_css:
   - project.css
 nav:
   - index.md
-  - basic_inheritance.md
-  - vtable_basic.md
-  - virtual_inheritance.md
-not_in_nav: |
-  RTTI1.md
+  - Object layout:
+    - basic_inheritance.md
+    - vtable_basic.md
+    - virtual_inheritance.md
+  - RTTI:
+    - Introduction: RTTI1.md
+    - RTTI_mwcc.md
