@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>MWCC and RTTI - MWCC C++ ABI</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+        <link href="../project.css" rel="stylesheet" />
+    
+      <script>
+        // Current page data
+        var properdocs_page_name = "MWCC and RTTI";
+        var properdocs_page_input_path = "RTTI_mwcc.md";
+        var properdocs_page_url = null;
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> MWCC C++ ABI
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">MWCC C++ ABI</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Object layout</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../basic_inheritance/">Non-polymorphic inheritance</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../vtable_basic/">VTables and non-virtual inheritance</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../virtual_inheritance/">Virtual inheritance</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">RTTI</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../RTTI1/">Introduction</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">MWCC and RTTI</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#introduction">Introduction</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#missing-bases">Missing bases</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#restricted-casts">Restricted casts</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#when-mwcc-goes-wrong">When MWCC goes wrong</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#working-example">Working example</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#compiler-being-overly-permissive">Compiler being overly permissive</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#runtime-being-overly-restrictive">Runtime being overly restrictive</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">MWCC C++ ABI</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">RTTI</li>
+      <li class="breadcrumb-item active">MWCC and RTTI</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="mwcc-and-rtti">MWCC and RTTI</h1>
+<h2 id="introduction">Introduction</h2>
+<p>MWCC takes a particularly unique approach to type info. First of all, type_info is not polymorphic, and boils down to just the following struct:</p>
+<pre><code class="language-c++">struct type_info {
+    const char* name;
+    type_info_base_list* baseList;
+};
+</code></pre>
+<p>In contrast to Itanium, this base list is <strong>not</strong> a list of the class' direct bases with info on their inheritance properties. Instead, it is a flat array of allowed <code>dynamic_cast</code> targets, with <code>type_info_base_list</code> being defined like this:</p>
+<pre><code class="language-c++">struct type_info_base_list {
+    type_info* baseTypeInfo;
+    long offset;
+};
+</code></pre>
+<p>So in a simple hierarchy with basic multiple inheritance, it looks like this:</p>
+<pre><code class="language-dot">digraph {
+    rankdir=BT;
+
+    &quot;A@0x0&quot; -&gt; &quot;B@0x0&quot;,&quot;C@0x4&quot;
+    &quot;B@0x0&quot; -&gt; &quot;D@0x0&quot;
+
+    block [shape=record label=&quot;C@0x4|D@0x0|B@0x0&quot;]
+
+    block -&gt; &quot;A@0x0&quot; [style=invis]
+}
+</code></pre>
+<p>A's <code>baseList</code> has 3 elements, referring to each of the 3 bases respectively since they're all valid <code>dynamic_cast</code> cross- or downcast targets.</p>
+<p>MWCC's <code>dynamic_cast</code> implementation simply loops through this list(after checking if you're not downcasting straight to the most-derived type) checking the requested type against the <code>type_info</code> in the list, and if it matches, casts to the type using the offset in the vtable combined with the offset in the base list object.</p>
+<h2 id="missing-bases">Missing bases</h2>
+<p>If a base is completely unreachable through <code>dynamic_cast</code>, it simply does not show up in the list at all:</p>
+<table>
+<tr>
+<th>Private inheritance</th>
+<th>Ambiguous base</th>
+</tr>
+<tr>
+<td>
+
+
+<pre><code class="language-dot">digraph {
+    rankdir=BT;
+
+    &quot;A@0x0&quot; -&gt; &quot;B@0x0&quot;
+    &quot;A@0x0&quot; -&gt; &quot;C@0x4&quot; [style=dotted label=&quot;priv&quot;]
+    &quot;B@0x0&quot; -&gt; &quot;D@0x0&quot;
+
+    block [shape=record label=&quot;D@0x0|B@0x0&quot;]
+
+    block -&gt; &quot;A@0x0&quot; [style=invis]
+}
+</code></pre>
+
+
+</td>
+<td>
+
+
+<pre><code class="language-dot">digraph {
+    rankdir=BT;
+
+    &quot;A@0x0&quot; -&gt; &quot;B@0x0&quot;
+    &quot;A@0x0&quot; -&gt; &quot;C@0x8&quot;
+    &quot;B@0x0&quot; -&gt; &quot;D@0x0&quot;, &quot;C@0x4&quot;
+
+    block [shape=record label=&quot;D@0x0|B@0x0&quot;]
+
+    block -&gt; &quot;A@0x0&quot; [style=invis]
+}
+</code></pre>
+
+
+</td>
+</tr>
+</table>
+
+<h2 id="restricted-casts">Restricted casts</h2>
+<p>Of course, not all <code>dynamic_cast</code> targets fall within the always versus never allowed buckets, there are plenty of cases where a cast is only allowed during a direct downcast. For example, in the following hierarchy, <code>dynamic_cast&lt;C*&gt;</code> is only allowed when the source subobject is its respective base subobject, <code>E</code>.</p>
+<pre><code class="language-dot">digraph {
+    rankdir=BT;
+
+    &quot;A@0x0&quot; -&gt; &quot;B@0x0&quot;
+    &quot;A@0x0&quot; -&gt; &quot;C@0x8&quot; -&gt; &quot;E@0x8&quot;
+    &quot;B@0x0&quot; -&gt; &quot;D@0x0&quot;, &quot;C@0x4&quot;
+    &quot;C@0x4&quot; -&gt; &quot;E@0x4&quot;
+
+    block [shape=record label=&quot;D@0x0|B@0x0|{C@0x8|{1|E@0x8}}|{C@0x4|{1|E@0x4}}&quot;]
+
+    block -&gt; &quot;A@0x0&quot; [style=invis]
+}
+</code></pre>
+<p>This new addition to the representation of the base list indicates that <code>C@0x8</code> can only be a target for <code>dynamic_cast</code> if the source subobject is <code>E@0x8</code>, and the same goes for <code>C@0x4</code>.</p>
+<p>But how is this actually represented in the <code>type_info_base_list</code> structure? The answer is that the <code>offset</code> member is actually not a full <code>long</code>, but only 31 bits large. When the top bit is set, the structure is actually of type <code>type_info_ambighead</code>:</p>
+<pre><code class="language-cpp">struct type_info_ambighead {
+    type_info* baseTypeInfo;
+    long offset;
+    long bases;
+};
+</code></pre>
+<p>This is then followed by an array of <code>type_info_base_list</code> entries of size <code>bases</code>, after which the next regular entry in the base list follows. In the example above, <code>bases</code> will be set to 1 for both <code>C</code> entries.</p>
+<p>A similar thing happens when private inheritance is involved, since that's the other case where only direct downcasts end up being allowed:</p>
+<pre><code class="language-dot">digraph {
+    rankdir=BT;
+
+    &quot;A@0x0&quot; -&gt; &quot;B@0x0&quot; [style=dotted label=&quot;priv&quot;]
+    &quot;A@0x0&quot; -&gt; &quot;C@0x8&quot; -&gt; &quot;E@0x8&quot;
+    &quot;B@0x0&quot; -&gt; &quot;D@0x0&quot;, &quot;C@0x4&quot;
+    &quot;C@0x4&quot; -&gt; &quot;E@0x4&quot;
+
+    block [shape=record label=&quot;{C@0x8|{1|E@0x8}}|{C@0x4|{1|E@0x4}}|{B@0x0|{3|{E@0x4|C@0x4|D@0x0}}}&quot;]
+
+    block -&gt; &quot;A@0x0&quot; [style=invis]
+}
+</code></pre>
+<p>Here <code>B@0x0</code> has 3 valid downcast sources, but can't be targeted by a cross-cast from the <code>C@0x8</code> branch.</p>
+<h2 id="when-mwcc-goes-wrong">When MWCC goes wrong</h2>
+<p>Unfortunately, however clever MWCC's approach may be, they ended up making a few mistakes, causing <code>dynamic_cast</code> not to comply with the standard. Both the compiler side and runtime implementation of <code>dynamic_cast</code> have issues, allowing invalid casts and disallowing valid ones respectively.</p>
+<h3 id="working-example">Working example</h3>
+<p>To demonstrate these bugs, we're going to start from a slightly more complex example:</p>
+<pre><code class="language-dot">digraph G {
+    rankdir=BT;
+
+    &quot;A@0x0&quot; -&gt; &quot;B@0x0&quot; [style=dotted,label=&quot;priv&quot;]
+    &quot;A@0x0&quot; -&gt; &quot;F@0xC&quot;, &quot;G@0x18&quot;
+    &quot;B@0x0&quot; -&gt; &quot;C@0x0&quot;, &quot;D@0x8&quot;
+    &quot;C@0x0&quot; -&gt; &quot;E@0x1C&quot;[style=dashed,label=&quot;virt&quot;]
+    &quot;F@0xC&quot; -&gt; &quot;B@0xC&quot; -&gt; &quot;C@0xC&quot;,&quot;D@0x14&quot;
+    &quot;C@0xC&quot; -&gt; &quot;E@0x1C&quot;[style=dashed,label=&quot;virt&quot;]
+
+    block [shape=record label=&quot;G@0x18|F@0xC|E@0x1C|{B@0xC|{2|{D@0x14|C@0xC}}}|{B@0x0|{2|{D@0x8|C@0x0}}}&quot;]
+
+    block -&gt; &quot;A@0x0&quot; [style=invis]
+}
+</code></pre>
+<h3 id="compiler-being-overly-permissive">Compiler being overly permissive</h3>
+<p>First of all, the base list never includes information as to when it's allowed to downcast to the most-derived type, so <code>dynamic_cast</code> simply has to assume it's always allowed. Moreover, as you can see in the example above, it will allow crosscasts to unambiguous bases of <code>A</code> unconditionally even if another branch has private inheritance.</p>
+<p>Seemingly, the compiler writers missed the part where crosscasts(and full downcasts to the most-derived type) are only allowed when the source subobject is a public base subobject. This would explain both the shortcutting of casting to <code>MDType</code> and the cross-casting behaviour.</p>
+<h3 id="runtime-being-overly-restrictive">Runtime being overly restrictive</h3>
+<p>MWCC's <a href="https://github.com/SephDB/pokepark-wii-decomp/blob/fb32ba6ae5276c3b2d05eb96fa68be0ffb75da07/src/sdk/PowerPC_EABI_Support/Runtime/MWRTTI.cpp#L30">runtime implementation <code>__dynamic_cast</code></a> has a bug in parsing the <code>type_info_ambighead</code> blocks. Instead of checking just the <code>baseTypeInfo</code>, it also checks whether the offset(after removing the top bit) matches the source object's offset. This check is wrong to do, but is used correctly further down when checking if the source object matches one of the bases in the ambiguous block.</p>
+<p>So downcasting from <code>C@0xC</code> to <code>B</code> works perfectly, but <code>D@0x14</code> to <code>B</code> fails since <code>B@0xC</code> is at the wrong offset according to the runtime. My best guess is that this never got caught because restricted casts happen only very rarely(you need either private inheritance or ambiguous bases to have the compiler output it in the first place), and even then you need multiple bases(or virtual inheritance) beyond that point to have the offsets mismatch.</p>
+<p>I have yet to find any game that both has the ability for this bug to cause an issue in any of its class hierarchies and has actual <code>dynamic_cast</code> invocations that could trigger it.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../RTTI1/" class="btn btn-neutral float-left" title="Introduction"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://properdocs.org/">ProperDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../RTTI1/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../viz-standalone.js"></script>
+      <script src="../do-graphs.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

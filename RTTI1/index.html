@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <link rel="shortcut icon" href="../img/favicon.ico" />
-    <title>RTTI and dynamic_cast - MWCC C++ ABI</title>
+    <title>Introduction - MWCC C++ ABI</title>
     <link rel="stylesheet" href="../css/theme.css" />
     <link rel="stylesheet" href="../css/theme_extra.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
@@ -13,7 +13,7 @@
     
       <script>
         // Current page data
-        var properdocs_page_name = "RTTI and dynamic_cast";
+        var properdocs_page_name = "Introduction";
         var properdocs_page_input_path = "RTTI1.md";
         var properdocs_page_url = null;
       </script>
@@ -44,17 +44,33 @@
                 <li class="toctree-l1"><a class="reference internal" href="..">MWCC C++ ABI</a>
                 </li>
               </ul>
+              <p class="caption"><span class="caption-text">Object layout</span></p>
               <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../basic_inheritance/">Non-polymorphic inheritance</a>
-                </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../basic_inheritance/">Non-polymorphic inheritance</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../vtable_basic/">VTables and non-virtual inheritance</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../virtual_inheritance/">Virtual inheritance</a>
+                  </li>
               </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../vtable_basic/">VTables and non-virtual inheritance</a>
-                </li>
-              </ul>
-              <ul>
-                <li class="toctree-l1"><a class="reference internal" href="../virtual_inheritance/">Virtual inheritance</a>
-                </li>
+              <p class="caption"><span class="caption-text">RTTI</span></p>
+              <ul class="current">
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Introduction</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#dynamic-cast-overview">Dynamic cast overview</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#itanium">Itanium</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#rtti">RTTI</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#libstdc-dynamic_cast">libstdc++ dynamic_cast</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../RTTI_mwcc/">MWCC and RTTI</a>
+                  </li>
               </ul>
       </div>
     </div>
@@ -70,7 +86,8 @@
         <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
     <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
-      <li class="breadcrumb-item active">RTTI and dynamic_cast</li>
+          <li class="breadcrumb-item">RTTI</li>
+      <li class="breadcrumb-item active">Introduction</li>
     <li class="wy-breadcrumbs-aside">
     </li>
   </ul>
@@ -141,6 +158,10 @@
               
             </div>
           </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../virtual_inheritance/" class="btn btn-neutral float-left" title="Virtual inheritance"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../RTTI_mwcc/" class="btn btn-neutral float-right" title="MWCC and RTTI">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
 
   <hr/>
 
@@ -162,6 +183,10 @@
   <span class="rst-current-version" data-toggle="rst-current-version">
     
     
+      <span><a href="../virtual_inheritance/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../RTTI_mwcc/" style="color: #fcfcfc">Next &raquo;</a></span>
     
   </span>
 </div>
